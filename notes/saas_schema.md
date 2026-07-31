@@ -1,8 +1,6 @@
 # `saas` Schema Dictionary
 
-*Owner: Sidharth Menon · Task 2, Day 1 recon · Built from `information_schema` queries + full-table/sample `SELECT *` exports.*
-*IDs in the CSV exports carry comma thousand-separators (e.g. `100,874`); strip commas on load.*
-
+*Owner: Sidharth Menon 
 ---
 
 ## 0. Six Probe Questions
