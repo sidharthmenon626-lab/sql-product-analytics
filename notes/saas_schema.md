@@ -3,7 +3,7 @@
 *Owner: Sidharth Menon 
 ---
 
-## 0. Six Probe Questions
+## Six Probe Questions
 
 **1. What is the grain of `subscriptions`?**
 Brief's hint: "self_serve → user-grain (`user_id` set, `seat_count = 1`); b2b → account-grain (`user_id` NULL)." Confirmed exactly, no exceptions: self_serve (2,000 rows) is 100% user-grain — every row has `user_id` set and `seat_count = 1`. b2b (113 rows) is 100% account-grain — every row has `user_id` NULL, `account_id` set, `seat_count` averaging 7.83. 113 + 2,000 = 2,113, the full table.
