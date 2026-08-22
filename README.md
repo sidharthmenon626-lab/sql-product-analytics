@@ -1,2 +1,59 @@
-# sql-product-analytics
-Production-style SQL product analytics case study using a SaaS onboarding dataset.
+# B2C vs B2B Analytics — 10 SQL Queries (Task 2)
+
+Ten SQL queries split across two real-shaped warehouses — `ecom` (B2C, 5 queries) and `saas` (B2B, 5 queries) — built to answer the same underlying questions (how do users activate, where does the funnel leak, what does retention look like, where does revenue come from) in two structurally different businesses.
+
+**House style:** CTEs over subqueries · window functions for trend/ranking/percentiles · `NULLIF(..., 0)` on every denominator · every query header-commented with its business question, definitions, and an explicit sanity-check assertion.
+
+## 📌 Executive Summary
+
+- **The two funnels aren't even the same shape.** B2C checkout is 5 steps inside one session, minutes apart; B2B trial conversion is measured in 14/30/60-day time windows, not discrete steps.
+- **"Retention" means two different things.** B2C retention (E3) is % of people active weekly; B2B retention (S3) is % of MRR kept over 12 months — B2B's version can exceed 100% via expansion.
+- **B2C moves in days, B2B moves in months.** Median time to B2C activation ranges ~1.9–3.2 days across cohorts (E1); median time to a B2B plan upgrade is **417 days** (S5).
+- **Money leaks and grows differently.** In B2C, high-value carts abandon *less often* but still account for ~65% of lost GMV (E5). In B2B, 70% of expansion MRR comes from a single lever — plan upgrades (S5).
+- **B2B's earliest usage signal barely exists.** At the required N=3 feature-adoption threshold, **zero of 1,193 eligible accounts** adopted any of 50 features in their first 14 days (S4) — a real finding, not a query bug.
+
+## 📄 Case study
+
+The full write-up — a memo comparing what the B2C and B2B query sets say about funnel shape, retention, revenue, and speed — lives in Notion:
+
+**[B2C vs B2B: How Funnels and Retention Actually Differ](https://shy-position-1fc.notion.site/B2C-vs-B2B-How-Funnels-and-Retention-Actually-Differ-3c4a3c1d0a29811ba68def1642cd366d)**
+
+(Also mirrored in full in `casestudy.md` in this folder.)
+
+## 🔗 Author
+
+Sidharth Menon — [LinkedIn](https://www.linkedin.com/in/sidharthmenon793)
+
+## 📂 Queries
+
+| # | File | Schema | Business question | Key data insight |
+|---|------|--------|-------------------|-------------------|
+| E1 | `e1_activationcurve_timeformeaningfulaction.sql` | ecom | How quickly do new signups take a meaningful action? | 7-day activation rates run **9%–22%** across cohorts; median time-to-activation ranges ~1.9–3.2 days |
+| E2 | `e2_ checkoutfunneldrop_byentrychannel.sql` | ecom | Where does checkout leak, and does it differ by channel? | Payment→Purchase loses **~8%** on every channel — a payment-experience issue, not a channel one |
+| E3 | `e3_cohort_retention_curve(behavioral).sql` | ecom | Of new signups, who comes back and does something in weeks 1–4? | Week-1 retention **14%–36%** (fully-observed cohorts); non-monotonic — customers skip weeks and return |
+| E4 | `e4_pdpengagement.sql` | ecom | Which products get views but not add-to-carts? | 3,996 products benchmarked against category-median ATC rate; low-view flags are mostly noise |
+| E5 | `e5_cartabandonment_bycartvaluebracket.sql` | ecom | Is cart abandonment the same across cart values? | Abandonment rate falls with cart size (53%→12%), but **~65%** of abandoned GMV sits in the top 2 value buckets |
+| S1 | `s1_monthly_mrr_decomposition.sql` | saas | How did MRR move each month, and why? | Ending MRR grew **~₹146.6K → ~₹347K** over 13 months; waterfall reconciles exactly |
+| S2 | `s2_trial_to_paid_conversion_bycohort.sql` | saas | What share of trials convert by day 14/30/60? | Monotonic in all 85 cohorts; median trial-to-paid **9–14 days**; weekly cohorts too thin (1–8/week) to trust individually |
+| S3 | `s3_grc_nrc_bycohort.sql` | saas | How much of a cohort's starting MRR did we keep (and grow)? | GRR **0.00–1.00** (one thin, fully-churned outlier cohort aside, 0.47–1.00), NRR up to **2.31**; GRR does not net out contraction (logo-weighted) |
+| S4 | `s4_featureadoption_retention.sql` + `s4_featureadoption_retention_sensitivity.sql` | saas | Which features predict 90-day retention? | **Zero adopters** at the required N=3 threshold, across all 1,193 eligible accounts; N=1 sensitivity shows API Bulk Operations as the strongest thin signal |
+| S5 | `s5_expansion_revenue.sql` | saas | Who's expanding MRR, and how? | **70%** of 6-month expansion MRR is plan upgrades (median 417 days to happen); reconciles exactly to S1 |
+
+Each query's raw Metabase output CSV sits alongside its `.sql` file one directory up (`../`).
+
+## 🚀 How to run
+
+1. Open Metabase → **New Question → Native query** → select the **`ecom`** or **`saas`** schema depending on the query.
+2. Paste any `.sql` file into the editor and run it — each is self-contained (no setup scripts, no temp tables).
+3. Check the header comment's **sanity-check assertion** first, before trusting the output.
+4. S1 uses a rolling 12-month window ending 2026-06-15. S3 only has an upper-bound cutoff of 2026-06-15 — it has **no lower-bound date filter**, so its cohorts run back to 2022, much further than S1's window. E1/E3 both exclude signups before **2026-04-19** (event instrumentation launch) — E1's displayed week bucket for that first cohort shows as "April 13" purely because `date_trunc('week', ...)` rounds down to that week's Monday, not because 04-13 is a separate cutoff. Adjust the date literals to re-point at a different period.
+5. No Metabase access? Any Postgres client (psql, DBeaver) connected to the same schemas runs these unchanged.
+
+## 🧠 Reflection
+
+- **What I learned.** Running the same analytical lens on two different business models exposed that "funnel" and "retention" aren't universal concepts — they take on the shape of the business they're measuring. Forcing a B2C funnel template onto B2B data (or vice versa) would have produced a misleading chart, not a comparable one.
+- The most useful finding wasn't a headline metric — it was a **null result**: zero feature adopters at the required N=3 threshold (S4). Confirming that was real (not a query bug) took independently recomputing every denominator, and it turned out to be a genuine, actionable product-onboarding signal.
+- Cross-checking queries against each other caught real things: S5's expansion MRR total matches S1's independently-computed figure to the cent, which is strong evidence both queries are internally consistent.
+- **What I'd do differently.** I'd re-run S2 and S4 at monthly cohort grain from the start — weekly B2B cohorts (1–8 trials/week) are too thin to read as signal, and I only found that out after building the weekly version first.
+- I'd also confirm the exact CSV export precision before writing the memo — Metabase's export silently rounds rate columns to 2 decimals even when the SQL computes 4, which I only caught by recomputing from raw counts.
+
