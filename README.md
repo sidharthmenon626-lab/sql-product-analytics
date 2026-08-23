@@ -1,4 +1,4 @@
-# B2C vs B2B Analytics — 10 SQL Queries (Task 2)
+# B2C vs B2B Analytics — 10 SQL Queries 
 
 Ten SQL queries split across two real-shaped warehouses — `ecom` (B2C, 5 queries) and `saas` (B2B, 5 queries) — built to answer the same underlying questions (how do users activate, where does the funnel leak, what does retention look like, where does revenue come from) in two structurally different businesses.
 
