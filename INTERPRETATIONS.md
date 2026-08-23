@@ -1,4 +1,4 @@
-# Query Interpretations — Task 2
+# Query Interpretations 
 
 *Owner: Sidharth Menon · Sources: `ecom` (B2C) and `saas` (B2B) schemas, Postgres/Metabase*
 *Currency in ₹. Rates in [0,1] unless labelled %. All numbers below were independently recomputed from the raw CSV output, not just read off query header comments.*
