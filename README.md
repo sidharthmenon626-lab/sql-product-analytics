@@ -15,19 +15,19 @@ Ten SQL queries split across two real-shaped warehouses — `ecom` (B2C, 5 queri
 ## 📊 Key Charts
 *E2 — Stage-to-stage checkout funnel by acquisition channel. The drop is nearly identical across all five channels at Payment→Purchase (~8%); a payment-experience issue, not a channel one.*
 
-<img width="356" height="281" alt="e2_checkout_funnel_by_channel" src="https://github.com/user-attachments/assets/6bddf642-52c8-46ac-904d-b84234592637" />
+<img width="500"  alt="e2_checkout_funnel_by_channel" src="https://github.com/user-attachments/assets/6bddf642-52c8-46ac-904d-b84234592637" />
 
 *E5 — Abandonment rate falls as cart value rises (53%→12%), but GMV left on the table inverts: ~65% of it sits in the top two value buckets.*
 
-<img width="370" height="278" alt="e5_abandonment_rate_vs_gmv_lost" src="https://github.com/user-attachments/assets/829f3e4d-1209-4176-bfd1-b1df6fa631c4" />
+<img width="500"  alt="e5_abandonment_rate_vs_gmv_lost" src="https://github.com/user-attachments/assets/829f3e4d-1209-4176-bfd1-b1df6fa631c4" />
 
 *S1 — Monthly MRR movement by driver. New MRR dominates every month, expansion is the steady second contributor, and churn briefly spikes in January and March 2026 (deepest at −₹13,821 in March) before recovering — net movement stays positive throughout, growing ending MRR from ~₹146.6K to ~₹347K over the 13-month window.*
 
-<img width="358" height="278" alt="s1_mrr_waterfall" src="https://github.com/user-attachments/assets/3fa71976-3fe1-45f8-bfe0-5853a3d94249" />
+<img width="500" alt="s1_mrr_waterfall" src="https://github.com/user-attachments/assets/3fa71976-3fe1-45f8-bfe0-5853a3d94249" />
 
 *S5 — 70% of 6-month expansion MRR comes from plan upgrades (median 417 days to happen), 30% from seat adds (faster, median 76 days), and addons are negligible (~0.3%, median 59 days, just 1 account).*
 
-<img width="386" height="287" alt="s5_expansion_revenue_mix" src="https://github.com/user-attachments/assets/51c7d380-1ae1-4a7c-8051-38a53000ad21" />
+<img width="500" alt="s5_expansion_revenue_mix" src="https://github.com/user-attachments/assets/51c7d380-1ae1-4a7c-8051-38a53000ad21" />
 
 
 > **Note:** S5 filters on `current_date - interval '6 months'`, not a fixed date. The exact total (and the `seats_added` share specifically) will drift slightly depending on when this chart was captured relative to when the rest of this analysis was run — the percentage split above is stable even if the absolute ₹ total moves.
