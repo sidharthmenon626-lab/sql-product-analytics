@@ -29,15 +29,18 @@ Ten SQL queries split across two real-shaped warehouses — `ecom` (B2C, 5 queri
 *E2 — Stage-to-stage checkout funnel by acquisition channel. The drop is nearly identical across all five channels at Payment→Purchase (~8%); a payment-experience issue, not a channel one.*
 <img width="500" height="500" alt="e2_checkout_funnel_by_channel" src="https://github.com/user-attachments/assets/ec24ff14-9a66-4c5a-863d-5a23852bc13b" />
 
+
 *E5 — Abandonment rate falls as cart value rises (53%→12%), but GMV left on the table inverts: ~65% of it sits in the top two value buckets.*
 <img width="500" height="500" alt="e5_abandonment_rate_vs_gmv_lost" src="https://github.com/user-attachments/assets/e6e376db-a582-493a-a7cf-8d756378f4df" />
 
+
 *S1 — Monthly MRR movement by driver. New MRR dominates every month, expansion is the steady second contributor, and churn briefly spikes in January and March 2026 (deepest at −₹13,821 in March) before recovering — net movement stays positive throughout, growing ending MRR from ~₹146.6K to ~₹347K over the 13-month window.*
-<img width="358" height="278" alt="s1_mrr_waterfall" src="https://github.com/user-attachments/assets/5caddefe-2ae2-4629-b9dd-776e9f5495bf" />
+<img width="500" height="500" alt="s1_mrr_waterfall" src="https://github.com/user-attachments/assets/5caddefe-2ae2-4629-b9dd-776e9f5495bf" />
+
+
 
 *S5 — 70% of 6-month expansion MRR comes from plan upgrades (median 417 days to happen), 30% from seat adds (faster, median 76 days), and addons are negligible (~0.3%, median 59 days, just 1 account).*
 <img width="500" height="500" alt="s5_expansion_revenue_mix" src="https://github.com/user-attachments/assets/414fc820-8284-4052-8161-80a39ecaeb35" />
-
 
 > **Note:** S5 filters on `current_date - interval '6 months'`, not a fixed date. The exact total (and the `seats_added` share specifically) will drift slightly depending on when this chart was captured relative to when the rest of this analysis was run — the percentage split above is stable even if the absolute ₹ total moves.
 
