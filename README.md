@@ -1,4 +1,4 @@
-# B2C vs B2B Analytics — 10 SQL Queries 
+# B2C vs B2B Analytics — 10 SQL Queries (Task 2)
 
 Ten SQL queries split across two real-shaped warehouses — `ecom` (B2C, 5 queries) and `saas` (B2B, 5 queries) — built to answer the same underlying questions (how do users activate, where does the funnel leak, what does retention look like, where does revenue come from) in two structurally different businesses.
 
@@ -26,22 +26,18 @@ Ten SQL queries split across two real-shaped warehouses — `ecom` (B2C, 5 queri
 | Usage signal density | High (every visit = data) | Low (0 adopters at required threshold) |
 
 ## 📊 Key Charts
+
+![Checkout Funnel by Channel](assets/e2_checkout_funnel_by_channel.png)
 *E2 — Stage-to-stage checkout funnel by acquisition channel. The drop is nearly identical across all five channels at Payment→Purchase (~8%); a payment-experience issue, not a channel one.*
 
-<img width="500"  alt="e2_checkout_funnel_by_channel" src="https://github.com/user-attachments/assets/6bddf642-52c8-46ac-904d-b84234592637" />
-
+![Cart Abandonment Rate vs GMV Lost by Bucket](assets/e5_abandonment_rate_vs_gmv_lost.png)
 *E5 — Abandonment rate falls as cart value rises (53%→12%), but GMV left on the table inverts: ~65% of it sits in the top two value buckets.*
 
-<img width="500"  alt="e5_abandonment_rate_vs_gmv_lost" src="https://github.com/user-attachments/assets/829f3e4d-1209-4176-bfd1-b1df6fa631c4" />
-
+![Monthly MRR Movement Decomposition](assets/s1_mrr_waterfall.png)
 *S1 — Monthly MRR movement by driver. New MRR dominates every month, expansion is the steady second contributor, and churn briefly spikes in January and March 2026 (deepest at −₹13,821 in March) before recovering — net movement stays positive throughout, growing ending MRR from ~₹146.6K to ~₹347K over the 13-month window.*
 
-<img width="500" alt="s1_mrr_waterfall" src="https://github.com/user-attachments/assets/3fa71976-3fe1-45f8-bfe0-5853a3d94249" />
-
+![Expansion Revenue Mix by Type](assets/s5_expansion_revenue_mix.png)
 *S5 — 70% of 6-month expansion MRR comes from plan upgrades (median 417 days to happen), 30% from seat adds (faster, median 76 days), and addons are negligible (~0.3%, median 59 days, just 1 account).*
-
-<img width="500" alt="s5_expansion_revenue_mix" src="https://github.com/user-attachments/assets/51c7d380-1ae1-4a7c-8051-38a53000ad21" />
-
 
 > **Note:** S5 filters on `current_date - interval '6 months'`, not a fixed date. The exact total (and the `seats_added` share specifically) will drift slightly depending on when this chart was captured relative to when the rest of this analysis was run — the percentage split above is stable even if the absolute ₹ total moves.
 
@@ -61,18 +57,18 @@ Sidharth Menon — [LinkedIn](https://www.linkedin.com/in/sidharthmenon793)
 
 | # | File | Schema | Business question | Key data insight |
 |---|------|--------|-------------------|-------------------|
-| E1 | [`e1_activation_curve_time_to_meaningful_action.sql`](../e1_activation_curve_time_to_meaningful_action.sql) | ecom | How quickly do new signups take a meaningful action? | 7-day activation rates run **9%–22%** across cohorts; median time-to-activation ranges ~1.9–3.2 days |
-| E2 | [`e2_checkout_funnel_by_channel.sql`](../e2_checkout_funnel_by_channel.sql) | ecom | Where does checkout leak, and does it differ by channel? | Payment→Purchase loses **~8%** on every channel — a payment-experience issue, not a channel one |
-| E3 | [`e3_cohort_retention_curve_behavioral.sql`](../e3_cohort_retention_curve_behavioral.sql) | ecom | Of new signups, who comes back and does something in weeks 1–4? | Week-1 retention **14%–36%** (fully-observed cohorts); non-monotonic — customers skip weeks and return |
-| E4 | [`e4_pdp_engagement.sql`](../e4_pdp_engagement.sql) | ecom | Which products get views but not add-to-carts? | 3,996 products benchmarked against category-median ATC rate; low-view flags are mostly noise |
-| E5 | [`e5_cart_abandonment_by_value_bracket.sql`](../e5_cart_abandonment_by_value_bracket.sql) | ecom | Is cart abandonment the same across cart values? | Abandonment rate falls with cart size (53%→12%), but **~65%** of abandoned GMV sits in the top 2 value buckets |
-| S1 | [`s1_monthly_mrr_decomposition.sql`](../s1_monthly_mrr_decomposition.sql) | saas | How did MRR move each month, and why? | Ending MRR grew **~₹146.6K → ~₹347K** over 13 months; waterfall reconciles exactly |
-| S2 | [`s2_trial_to_paid_conversion_by_cohort.sql`](../s2_trial_to_paid_conversion_by_cohort.sql) | saas | What share of trials convert by day 14/30/60? | Monotonic in all 85 cohorts; median trial-to-paid **9–14 days**; weekly cohorts too thin (1–8/week) to trust individually |
-| S3 | [`s3_grr_nrr_by_cohort.sql`](../s3_grr_nrr_by_cohort.sql) | saas | How much of a cohort's starting MRR did we keep (and grow)? | GRR **0.00–1.00** (one thin, fully-churned outlier cohort aside, 0.47–1.00), NRR up to **2.31**; GRR does not net out contraction (logo-weighted) |
-| S4 | [`s4_feature_adoption_retention.sql`](../s4_feature_adoption_retention.sql) + [`s4_feature_adoption_retention_sensitivity.sql`](../s4_feature_adoption_retention_sensitivity.sql) | saas | Which features predict 90-day retention? | **Zero adopters** at the required N=3 threshold, across all 1,193 eligible accounts; N=1 sensitivity shows API Bulk Operations as the strongest thin signal |
-| S5 | [`s5_expansion_revenue.sql`](../s5_expansion_revenue.sql) | saas | Who's expanding MRR, and how? | **70%** of 6-month expansion MRR is plan upgrades (median 417 days to happen); total drifts over time vs. S1 since S5 uses `current_date`, not a fixed window |
+| E1 | [`e1_activation_curve_time_to_meaningful_action.sql`](queries/e1_activation_curve_time_to_meaningful_action.sql) | ecom | How quickly do new signups take a meaningful action? | 7-day activation rates run **9%–22%** across cohorts; median time-to-activation ranges ~1.9–3.2 days |
+| E2 | [`e2_checkout_funnel_by_channel.sql`](queries/e2_checkout_funnel_by_channel.sql) | ecom | Where does checkout leak, and does it differ by channel? | Payment→Purchase loses **~8%** on every channel — a payment-experience issue, not a channel one |
+| E3 | [`e3_cohort_retention_curve_behavioral.sql`](queries/e3_cohort_retention_curve_behavioral.sql) | ecom | Of new signups, who comes back and does something in weeks 1–4? | Week-1 retention **14%–36%** (fully-observed cohorts); non-monotonic — customers skip weeks and return |
+| E4 | [`e4_pdp_engagement.sql`](queries/e4_pdp_engagement.sql) | ecom | Which products get views but not add-to-carts? | 3,996 products benchmarked against category-median ATC rate; low-view flags are mostly noise |
+| E5 | [`e5_cart_abandonment_by_value_bracket.sql`](queries/e5_cart_abandonment_by_value_bracket.sql) | ecom | Is cart abandonment the same across cart values? | Abandonment rate falls with cart size (53%→12%), but **~65%** of abandoned GMV sits in the top 2 value buckets |
+| S1 | [`s1_monthly_mrr_decomposition.sql`](queries/s1_monthly_mrr_decomposition.sql) | saas | How did MRR move each month, and why? | Ending MRR grew **~₹146.6K → ~₹347K** over 13 months; waterfall reconciles exactly |
+| S2 | [`s2_trial_to_paid_conversion_by_cohort.sql`](queries/s2_trial_to_paid_conversion_by_cohort.sql) | saas | What share of trials convert by day 14/30/60? | Monotonic in all 85 cohorts; median trial-to-paid **9–14 days**; weekly cohorts too thin (1–8/week) to trust individually |
+| S3 | [`s3_grr_nrr_by_cohort.sql`](queries/s3_grr_nrr_by_cohort.sql) | saas | How much of a cohort's starting MRR did we keep (and grow)? | GRR **0.00–1.00** (one thin, fully-churned outlier cohort aside, 0.47–1.00), NRR up to **2.31**; GRR does not net out contraction (logo-weighted) |
+| S4 | [`s4_feature_adoption_retention.sql`](queries/s4_feature_adoption_retention.sql) + [`s4_feature_adoption_retention_sensitivity.sql`](queries/s4_feature_adoption_retention_sensitivity.sql) | saas | Which features predict 90-day retention? | **Zero adopters** at the required N=3 threshold, across all 1,193 eligible accounts; N=1 sensitivity shows API Bulk Operations as the strongest thin signal |
+| S5 | [`s5_expansion_revenue.sql`](queries/s5_expansion_revenue.sql) | saas | Who's expanding MRR, and how? | **70%** of 6-month expansion MRR is plan upgrades (median 417 days to happen); total drifts over time vs. S1 since S5 uses `current_date`, not a fixed window |
 
-Each query's raw Metabase output CSV sits alongside its `.sql` file one directory up (`../`).
+Each query lives in the `queries/` folder.
 
 ## 🚀 How to run
 
