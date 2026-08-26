@@ -1,62 +1,134 @@
 /*
 ===============================================================================
-S4 — Feature Adoption vs Retention
+Query S4 - Feature Adoption vs Retention
 ===============================================================================
 
-Business question:
-Which product features are associated with stronger 90-day retention?
-Which features appear to be red herrings?
+Business Question
+-----------------
+Which product features predict 90-day retention, and which features appear to
+be red herrings?
 
-Methodology:
-- Eligible accounts are accounts whose signup date was at least 90 days
-  before the analysis cutoff of 2026-06-15.
-- 90-day retention means the account had a subscription covering the
-  90-day anniversary of signup.
-- Feature adoption is defined as using a feature at least 3 times in the
-  first 14 days after signup (N = 3), using the required default threshold.
-- Feature adoption uses the reliable events.feature_id → features.feature_id
-  join path. Legacy events with NULL feature_id are excluded rather than
-  attempting text-based feature matching.
-- Events without an account_id cannot be attributed to an account and are
-  excluded from account-level adoption analysis.
-- Retention lift is observational, not causal. Accounts that adopt features
-  may differ systematically in engagement, usage intensity, or customer
-  characteristics. A propensity-matched comparison or adjustment for usage
-  intensity would be the appropriate next step.
+Definitions
+-----------
+Feature Adopted:
+An account is considered to have adopted a feature if it uses that feature at
+least 3 times within the first 14 days after signup.
 
-Important interpretation:
-- N = 3 is the primary/default adoption definition and is not changed to
-  manufacture a larger adopter population.
-- In the eligible cohort, N = 3 produces no feature adopters. Therefore,
-  the primary definition cannot produce a meaningful feature-level
-  retention comparison.
-- A separate N = 1 sensitivity analysis is used to assess whether any
-  directional feature-retention signal is observable under a less stringent
-  adoption definition. That analysis is documented separately and should
-  not be interpreted as replacing the N = 3 result.
+Retained at 90 Days:
+An account is retained if its subscription is still active 90 days after
+signup. This is determined using subscription start_date, end_date, and
+cancelled_at rather than billing-period fields.
 
-Data-quality notes:
-- 76 feature_use events have no account_id and are excluded because they
-  cannot be attributed to an account.
-- 1,520 events have no feature_id and are excluded from feature adoption
-  analysis because the feature cannot be reliably identified.
-- Legacy event rows contain feature names in properties rather than
-  feature_id, indicating vocabulary/schema drift. These rows are not
-  backfilled through text matching.
+Eligible Accounts:
+Accounts whose signup date is at least 90 days before the analysis cutoff of
+2026-06-15.
 
-Sanity check:
-- accounts_adopted + accounts_not_adopted must equal the total number of
-  eligible accounts for every feature.
-- The eligible cohort contains 1,193 accounts, so every feature should
-  reconcile to 1,193 accounts.
+Grain
+-----
+One row per product feature.
 
-PM action:
-- Do not launch a discoverability push based on the N = 3 analysis because
-  there are no adopters under the required threshold.
-- Use the separate N = 1 sensitivity analysis only as exploratory evidence.
-- If a directional signal appears in the sensitivity analysis, investigate
-  it further before recommending onboarding placement, default-on treatment,
-  or an in-app prompt.
+Output
+------
+feature_name,
+accounts_adopted,
+accounts_not_adopted,
+retention_rate_adopted_pct,
+retention_rate_not_adopted_pct,
+retention_lift_pp,
+retention_lift_pct
+
+Business Interpretation
+-----------------------
+The required N = 3 adoption threshold produces no feature adopters within the
+eligible cohort of 1,193 accounts. Therefore, the primary analysis cannot
+produce a meaningful feature-level comparison of 90-day retention.
+
+This is a data finding rather than a SQL issue: repeated feature usage within
+the first 14 days is too sparse in the available event data to support the
+required adoption definition.
+
+A separate N = 1 sensitivity analysis is maintained to explore whether any
+directional feature-retention relationship becomes visible under a less
+stringent definition. That analysis does not replace the primary N = 3 result.
+
+PM Recommendation
+-----------------
+Do not launch a discoverability push, onboarding change, default-on treatment,
+or in-app prompt based on the N = 3 analysis because no feature reaches the
+required adoption threshold.
+
+Use the N = 1 sensitivity analysis only for exploratory investigation. Any
+feature showing a positive association with retention should be tested further
+while controlling for overall account usage intensity or through a
+propensity-matched comparison.
+
+Sanity Checks Performed
+-----------------------
+
+1. Eligible Account Reconciliation
+
+Verified that the eligible cohort contains 1,193 accounts.
+
+For every feature:
+
+    accounts_adopted + accounts_not_adopted = 1,193
+
+Result:
+✓ Passed.
+
+2. Adoption Threshold Validation
+
+Verified that feature adoption requires:
+
+    feature_uses_14d >= 3
+
+Result:
+✓ Passed.
+
+No eligible account reaches the N = 3 adoption threshold.
+
+3. Retention Definition Validation
+
+Verified that an account is considered retained only when its subscription
+covers the account's 90-day anniversary, using start_date, end_date, and
+cancelled_at.
+
+Result:
+✓ Passed.
+
+4. Feature Attribution Validation
+
+Feature adoption is based only on the reliable:
+
+    events.feature_id → features.feature_id
+
+join path.
+
+Events without account_id cannot be attributed to an account and are excluded.
+Events without feature_id are excluded rather than attempting unreliable
+text-based matching against legacy feature names stored in properties.
+
+Result:
+✓ Passed.
+
+Design Note
+-----------
+This analysis creates a complete account × feature comparison using a CROSS
+JOIN between eligible accounts and the feature catalog.
+
+Feature usage within the first 14 days is then LEFT JOINed onto this complete
+population. This ensures that both adopters and non-adopters are represented
+for every feature and allows:
+
+    accounts_adopted + accounts_not_adopted
+
+to reconcile to the full eligible-account population.
+
+The analysis is observational and does not establish causality. Accounts that
+adopt more features may already differ in engagement or usage intensity from
+accounts that do not. A future analysis should control for these differences
+using usage controls or propensity matching.
+
 ===============================================================================
 */
 

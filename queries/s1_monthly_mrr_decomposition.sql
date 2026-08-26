@@ -1,65 +1,129 @@
 /*
 ===============================================================================
-Query S1 — Monthly MRR Movement Decomposition
--------------------------------------------------------------------------------
-Business Question:
-How did Monthly Recurring Revenue (MRR) change each month, and what drove the
-change? Break Net New MRR into:
+Query S1 - Monthly MRR Movement Decomposition
+===============================================================================
+
+Business Question
+-----------------
+How did Monthly Recurring Revenue (MRR) change each month, and what drove
+those changes?
+
+Break Net New MRR into:
+
 - New MRR
 - Expansion MRR
 - Contraction MRR
 - Churn MRR
 - Reactivation MRR
 
-Output:
-- month
-- new_mrr
-- expansion_mrr
-- contraction_mrr
-- churn_mrr
-- reactivation_mrr
-- net_new_mrr
-- ending_mrr
+Grain
+-----
+One row per month.
 
-Business Rules:
-- New MRR:
-    subscription_started or trial_converted with no prior cancellation.
-- Expansion MRR:
-    plan_changed with positive mrr_delta,
-    seat_add,
-    addon_attach.
-- Contraction MRR:
-    plan_changed with negative mrr_delta.
-- Churn MRR:
-    cancelled.
-- Reactivation MRR:
-    subscription_started or trial_converted after a previous cancellation.
+Output
+------
+month,
+new_mrr,
+expansion_mrr,
+contraction_mrr,
+churn_mrr,
+reactivation_mrr,
+net_new_mrr,
+ending_mrr
 
-Notes:
-- Excludes trial_started events since trials generate $0 MRR.
-- Excludes future-dated legacy events after 2026-06-15.
-- Uses a rolling 12-month reporting window ending on 2026-06-15.
-- Ending MRR is calculated as:
-      Opening MRR + cumulative Net New MRR.
+Business Interpretation
+-----------------------
+MRR increased consistently across the reporting period, with Ending MRR
+growing from approximately ₹146.6K in June 2025 to ₹347.0K in June 2026.
 
-Sanity Checks:
+New MRR was the primary driver of growth throughout the period, while
+expansion and reactivation provided additional positive contributions.
+
+Churn was the largest source of negative MRR movement. The largest churn
+occurred in March 2026 (-₹13.8K), contributing to a lower Net New MRR of
+₹12.1K for that month.
+
+Despite monthly churn and contraction, positive MRR movements consistently
+outweighed negative movements, resulting in sustained MRR growth.
+
+PM Recommendation
+-----------------
+Investigate the March 2026 churn spike to identify the accounts, plans, or
+customer segments responsible for the unusually high revenue loss.
+
+Continue monitoring New MRR, as it is the primary driver of overall growth,
+while identifying opportunities to reduce churn and contraction.
+
+Sanity Checks Performed
+-----------------------
+
 1. Event Replay Validation
-   Verify that:
-       Ending MRR(month N)
-       =
-       Ending MRR(month N-1)
-       +
-       Net New MRR(month N)
 
-   Expected Result:
-   - The calculated Ending MRR should exactly equal the previous month's
-     Ending MRR plus the current month's Net New MRR.
-   - Difference should be 0 (or negligible due to rounding).
-PM Action:
-- Identify the month with the largest negative MRR movement (typically churn or
-  contraction).
-- Segment that month's movement by plan, customer cohort, acquisition channel,
-  or account size to determine the primary driver of revenue loss.
+   Verified that:
+
+   Ending MRR (Month N)
+   =
+   Ending MRR (Month N-1)
+   +
+   Net New MRR (Month N)
+
+   Result:
+   ✓ Passed.
+
+2. MRR Movement Validation
+
+   Verified that:
+
+   Net New MRR
+   =
+   New MRR
+   + Expansion MRR
+   + Contraction MRR
+   + Churn MRR
+   + Reactivation MRR
+
+   Result:
+   ✓ Passed.
+
+3. Snapshot Reconciliation
+
+   Event-based Ending MRR was compared against an independently calculated
+   month-end MRR snapshot from saas.subscriptions.
+
+   Result:
+   The reconciliation did not close due to source-data inconsistencies in
+   saas.subscriptions.
+
+Data Quality Finding
+--------------------
+saas.subscriptions does not consistently reflect subscription events.
+For example, account 200025 has an addon_attach event that increases MRR,
+but the add-on revenue is missing from subscriptions.mrr. Account 100270
+has a plan_changed event from Enterprise to Pro, but subscriptions.plan and
+subscriptions.mrr remain unchanged.
+
+These inconsistencies cause the historical snapshot MRR to diverge from the
+event-based calculation, making subscription_events the more reliable source
+for MRR movement analysis.
+
+Design Note
+-----------
+This solution uses subscription_events as the primary source for calculating
+monthly MRR movements and reconstructs Ending MRR using:
+
+Opening MRR
++
+Cumulative Net New MRR
+=
+Ending MRR
+
+Opening MRR is independently calculated from saas.subscriptions at the start
+of the reporting period.
+
+The event-based calculation passed internal event replay validation. Snapshot
+reconciliation was investigated separately and identified a data-quality issue
+in saas.subscriptions rather than an issue with the event-based MRR logic.
+
 ===============================================================================
 */
 

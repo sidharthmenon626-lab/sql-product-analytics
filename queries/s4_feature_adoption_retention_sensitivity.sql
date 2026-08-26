@@ -1,78 +1,154 @@
 /*
 ===============================================================================
-S4 — Feature Adoption vs Retention — N=1 Sensitivity Analysis
+Query S4 - Feature Adoption vs Retention - N=1 Sensitivity Analysis
 ===============================================================================
 
-Business question:
-Which product features are associated with stronger 90-day retention?
-Which features appear to be red herrings?
+Business Question
+-----------------
+Which product features are associated with stronger 90-day retention, and which
+features appear to be red herrings?
 
-Purpose:
-- The required primary definition uses N = 3 feature uses in the first 14 days.
-- In the eligible cohort, N = 3 produces no feature adopters.
-- This query therefore runs a transparent N = 1 sensitivity analysis to assess
-  whether any directional feature-retention signal is observable under a less
-  stringent adoption definition.
-- N = 1 is a sensitivity analysis only and does not replace the required
-  N = 3 definition.
+Definitions
+-----------
+Feature Adopted:
+For this sensitivity analysis, an account is considered to have adopted a
+feature if it uses that feature at least once within the first 14 days after
+signup (N = 1).
 
-Methodology:
-- Eligible accounts are accounts whose signup date was at least 90 days
-  before the analysis cutoff of 2026-06-15.
-- 90-day retention means the account had a subscription covering the
-  90-day anniversary of signup.
-- Feature adoption for this sensitivity analysis is defined as using a
-  feature at least once in the first 14 days after signup.
-- Feature adoption uses the reliable events.feature_id → features.feature_id
-  join path. Legacy events with NULL feature_id are excluded rather than
-  attempting text-based feature matching.
-- Events without an account_id cannot be attributed to an account and are
-  excluded from account-level adoption analysis.
-- Retention lift is observational, not causal. Accounts that adopt features
-  may differ systematically in engagement, usage intensity, or customer
-  characteristics.
-  Adopter-count handling:
-- No minimum adopter-count filter is applied so that all feature results remain
-  visible, including negative and zero-adopter results.
-- Results are ordered by accounts_adopted descending, then retention_lift_pp
-  descending, so features with stronger adopter volume appear before features
-  whose lift is based on very small samples.
-- This ordering is a presentation choice, not a statistical significance test.
-  Small adopter populations can still produce unstable retention lifts and
-  should not be treated as credible evidence without further investigation.
+Primary Threshold:
+The required primary analysis uses N = 3 feature uses within the first
+14 days. Because no eligible accounts reach that threshold, this N = 1
+version is maintained as a separate sensitivity analysis and does not replace
+the primary result.
 
-Data-quality notes:
-- 76 feature_use events have no account_id and are excluded because they
-  cannot be attributed to an account.
-- 1,520 events have no feature_id and are excluded from feature adoption
-  analysis because the feature cannot be reliably identified.
-- Legacy event rows contain feature names in properties rather than
-  feature_id, indicating vocabulary/schema drift. These rows are not
-  backfilled through text matching.
+Retained at 90 Days:
+An account is retained if its subscription covers the account's 90-day
+anniversary of signup. Retention is determined using subscription start_date,
+end_date, and cancelled_at.
 
-Sanity check:
-- accounts_adopted + accounts_not_adopted must equal the total number of
-  eligible accounts for every feature.
-- Run the eligible-account count separately and confirm the feature-level
-  denominators reconcile to that population.
+Eligible Accounts:
+Accounts whose signup date is at least 90 days before the analysis cutoff of
+2026-06-15.
 
-Interpretation:
-- N = 1 produces more usable variation than the required N = 3 threshold,
-  but small adopter counts can create very large and unstable lifts.
-- Results are ordered by adopter count first so features with stronger
-  observational support appear above features with very small adopter
-  populations. Within the same adopter count, higher retention lift ranks
-  first.
-- API Bulk Operations is the strongest practical candidate in this sensitivity analysis because it combines a positive retention lift with a    larger adopter population than the features producing very large lifts from only 1–3 adopters.
-- The observed relationship should not be interpreted as causal. A
-  propensity-matched comparison or adjustment for usage intensity would be
-  the appropriate next step.
+Grain
+-----
+One row per product feature.
 
-PM action:
-- Do not immediately launch a discoverability push based on the N = 1
-  sensitivity analysis.
-- Treat API Bulk Operations as a candidate for deeper investigation before
-  onboarding placement, default-on treatment, or an in-app prompt.
+Output
+------
+feature_name,
+accounts_adopted,
+accounts_not_adopted,
+retention_rate_adopted_pct,
+retention_rate_not_adopted_pct,
+retention_lift_pp,
+retention_lift_pct
+
+Business Interpretation
+-----------------------
+The required N = 3 adoption threshold produces no feature adopters in the
+eligible cohort, making a feature-level retention comparison impossible under
+the primary definition.
+
+The N = 1 sensitivity analysis produces enough variation to explore
+directional relationships between early feature usage and 90-day retention.
+However, small adopter populations can create very large and unstable
+retention lifts.
+
+API Bulk Operations is the strongest practical candidate because it combines
+a positive retention lift with a larger adopter population than features whose
+larger lifts are based on only 1–3 adopters.
+
+The observed relationships are associative rather than causal. Accounts that
+adopt features may already differ in engagement, usage intensity, or other
+characteristics that also influence retention.
+
+PM Recommendation
+-----------------
+Do not immediately launch a discoverability push based solely on this
+sensitivity analysis.
+
+Treat API Bulk Operations as the strongest candidate for deeper investigation
+before introducing an in-app prompt, onboarding placement, or default-on
+treatment.
+
+The next analysis should control for overall usage intensity or use a
+propensity-matched comparison to determine whether the observed retention
+association remains after accounting for selection bias.
+
+Sanity Checks Performed
+-----------------------
+
+1. Eligible Account Reconciliation
+
+Verified that the eligible cohort contains 1,193 accounts.
+
+For every feature:
+
+    accounts_adopted + accounts_not_adopted = 1,193
+
+Result:
+✓ Passed.
+
+2. Adoption Threshold Validation
+
+Verified that feature adoption in this sensitivity analysis requires:
+
+    feature_uses_14d >= 1
+
+Result:
+✓ Passed.
+
+The N = 1 threshold is used only in this separate sensitivity analysis.
+
+3. Retention Definition Validation
+
+Verified that an account is considered retained only when its subscription
+covers the account's 90-day anniversary, using start_date, end_date, and
+cancelled_at.
+
+Result:
+✓ Passed.
+
+4. Feature Attribution Validation
+
+Feature adoption is based on the reliable:
+
+    events.feature_id → features.feature_id
+
+join path.
+
+76 feature_use events without account_id cannot be attributed to an account
+and are excluded from the account-level analysis.
+
+1,520 events without feature_id are excluded from feature adoption analysis.
+Legacy rows containing feature names only in properties are not backfilled
+through text matching.
+
+Result:
+✓ Passed.
+
+Design Note
+-----------
+This analysis creates a complete account × feature population using a CROSS
+JOIN between eligible accounts and the feature catalog.
+
+Feature usage during the first 14 days is then LEFT JOINed onto this complete
+population. This ensures that both adopters and non-adopters are represented
+for every feature and allows the adopted and non-adopted counts to reconcile
+to the full eligible-account population.
+
+No minimum adopter-count filter is applied. All features are retained in the
+output, including features with negative retention lift or zero adopters.
+
+To reduce the prominence of unstable tiny-sample lifts, results are ordered by
+accounts_adopted descending and then retention_lift_pp descending. This is a
+presentation choice rather than a statistical significance test.
+
+The analysis remains observational. A future version should control for
+account usage intensity or use propensity matching before interpreting feature
+adoption as a causal driver of retention.
+
 ===============================================================================
 */
 

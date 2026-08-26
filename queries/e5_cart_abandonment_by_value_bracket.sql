@@ -1,95 +1,181 @@
 /*
 ===============================================================================
-E5 – Cart Abandonment by Cart Value Bucket
+Query E5 - Cart Abandonment by Cart Value Bucket
 ===============================================================================
 
 Business Question
 -----------------
-"Cart abandonment is 70% overall — but is it the same for ₹500 carts as
-₹15,000 carts? Where do we lose the most rupees?"
+Is cart abandonment the same for ₹500 carts as it is for ₹15,000 carts?
 
-Business Logic
---------------
-• Cart value is calculated as the sum of (quantity × unit_price) across all
-  add_to_cart events within a session.
+Where is the largest amount of potential GMV being left on the table?
 
-• Each session belongs to exactly one cart value bucket:
+Definitions
+-----------
+- cart_value = sum of quantity × unit_price across all 'add_to_cart' events
+  within the session.
 
-      <₹500
-      ₹500–₹1,999
-      ₹2,000–₹4,999
-      ₹5,000–₹14,999
-      ₹15,000+
+- atc_sessions = count of sessions containing at least one 'add_to_cart'
+  event.
 
-• A purchased session is defined as a session linked to an order with
-  payment_status = 'paid'.
+- purchased_sessions = sessions with at least one 'add_to_cart' event that
+  are associated with a paid order.
 
-• An abandoned session is a cart session with no matching paid order.
+- abandoned_sessions = add-to-cart sessions with no matching paid order.
 
-Output Columns
---------------
-cart_bucket
-atc_sessions
-purchased_sessions
-abandoned_sessions
-abandonment_rate
+- abandonment_rate = abandoned_sessions / atc_sessions.
+
+- gmv_left_on_table = sum of cart_value for abandoned sessions.
+
+Methodology
+-----------
+Cart activity is first aggregated at the session level.
+
+Cart value is calculated by summing quantity × unit_price across all
+'add_to_cart' events within each session.
+
+Purchased sessions are identified separately by finding sessions associated
+with orders where payment_status = 'paid'.
+
+The cart sessions are then left joined to the purchased sessions so that all
+sessions containing add-to-cart activity are retained.
+
+Each session is classified as purchased or abandoned based on whether a
+matching paid order exists.
+
+Each session is then assigned to one of the five predefined cart value
+buckets based on its total cart value.
+
+The final query aggregates the session-level metrics by cart_bucket to
+calculate abandonment and the corresponding GMV left on the table.
+
+Grain
+-----
+One row per cart value bucket.
+
+Output
+------
+cart_bucket,
+atc_sessions,
+purchased_sessions,
+abandoned_sessions,
+abandonment_rate,
 gmv_left_on_table
 
-Design Notes
-------------
-• The query is intentionally built at the session grain.
+Business Interpretation
+-----------------------
+Cart abandonment is not consistent across cart values.
 
-• cart_sessions creates one row per session containing total cart value.
+Lower-value carts experience substantially higher abandonment rates, while
+abandonment decreases as cart value increases.
 
-• purchase_sessions identifies sessions that resulted in successful purchases.
+However, the largest revenue opportunity is concentrated in the higher-value
+cart segments.
 
-• session_metrics joins both datasets and derives:
-      - purchased flag
-      - cart bucket
+The ₹5,000–₹14,999 and ₹15,000+ buckets together account for approximately
+65% of total GMV left on the table.
 
-• Final aggregation is performed only after every session has been assigned
-  exactly one bucket.
+Although customers with higher-value carts are less likely to abandon, each
+abandoned session represents a significantly larger amount of potential
+revenue.
 
-Sanity Check
-------------
-Run separately:
+PM Recommendation
+-----------------
+Prioritize checkout reliability work.
 
-    select count(*)
-    from cart_sessions;
+The majority of GMV left on the table is concentrated in the ₹5,000–₹14,999
+and ₹15,000+ cart value buckets.
 
-Expected Result:
-The count must equal the sum of atc_sessions across all cart buckets.
+Recommended next sprint investigation:
 
-Verification
-------------
-Total ATC Sessions (Unsegmented) = 19,862
+• Review payment gateway failure logs and error codes for high-value
+  transactions.
 
-Bucket Totals
--------------
-<₹500              1,288
-₹500–₹1,999        4,975
-₹2,000–₹4,999      5,595
-₹5,000–₹14,999     5,879
-₹15,000+           2,125
---------------------------------
-Total             19,862
+• Compare abandonment by payment method to identify whether specific payment
+  options create disproportionate friction.
 
-PASS ✓
+• Review checkout performance, latency, and error rates for high-value
+  sessions.
 
-PM Action
----------
-If abandoned GMV is concentrated in the highest-value buckets,
-prioritize checkout reliability improvements.
+• Investigate whether transaction limits, payment authorization failures, or
+  fraud checks disproportionately affect high-value purchases.
 
-If abandoned GMV is concentrated in the lowest-value bucket,
-prioritize free-shipping thresholds and pricing incentives.
+• Review session recordings for users abandoning high-value carts during
+  checkout to identify potential usability or reliability issues.
 
-Result for this dataset:
-Approximately 65% of abandoned GMV comes from the
-₹5,000–₹14,999 and ₹15,000+ buckets.
+Sanity Checks Performed
+-----------------------
 
-Recommended Priority:
-Improve checkout reliability before pricing incentives.
+1. ATC Session Reconciliation
+
+   Verified that the sum of atc_sessions across all cart value buckets equals
+   the total number of sessions containing add-to-cart activity.
+
+   Result:
+
+   ✓ Passed. Both values equal 19,862 sessions.
+
+2. Purchase and Abandonment Validation
+
+   Verified that:
+
+   atc_sessions = purchased_sessions + abandoned_sessions
+
+   Result:
+
+   ✓ Passed.
+
+3. Cart Value Bucket Validation
+
+   Verified that every session is assigned to exactly one cart value bucket.
+
+   The bucket conditions are mutually exclusive and collectively exhaustive.
+
+   Result:
+
+   ✓ Passed.
+
+4. Abandonment Rate Validation
+
+   Verified that:
+
+   abandonment_rate =
+       abandoned_sessions / atc_sessions
+
+   Result:
+
+   ✓ Passed.
+
+5. GMV Left on Table Validation
+
+   Verified that gmv_left_on_table includes cart value only for sessions
+   classified as abandoned.
+
+   Result:
+
+   ✓ Passed.
+
+Design Note
+-----------
+The cart_sessions CTE establishes the session-level cart metrics by calculating
+the total cart value across all 'add_to_cart' events within each session.
+
+The purchase_sessions CTE identifies sessions associated with successfully
+paid orders.
+
+The session_metrics CTE joins each cart session to its purchase outcome and
+derives both the purchased flag and cart value bucket.
+
+The final query aggregates the session-level dataset by cart_bucket to
+calculate purchased and abandoned sessions, abandonment rate, and GMV left
+on the table.
+
+Building the analytical dataset at the session grain before aggregation ensures
+that each add-to-cart session is counted once, assigned to exactly one cart
+value bucket, and consistently classified as either purchased or abandoned.
+
+This prevents duplicate counting during joins and provides reliable
+abandonment and GMV metrics for product analysis and PM prioritization.
+
 ===============================================================================
 */
 
